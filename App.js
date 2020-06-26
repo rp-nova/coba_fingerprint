@@ -12,7 +12,6 @@ import {
 } from 'react-native';
  
 import FingerprintScanner from 'react-native-fingerprint-scanner';
-import DeviceSettings from 'react-native-device-settings'
 import styles from './FingerprintPopup.component.styles';
 import ShakingText from './ShakingText.component';
  
@@ -31,6 +30,8 @@ class BiometricPopup extends Component {
     };
  
     this.description = null;
+
+    console.disableYellowBox = true
   }
  
   componentWillUnmount = () => {
@@ -149,7 +150,6 @@ class BiometricPopup extends Component {
         >
           {
             !this.state.isAuthenthicated ?
-              <>
               <TouchableOpacity
               activeOpacity = {0.7}
               onPress = {() => {
@@ -174,31 +174,6 @@ class BiometricPopup extends Component {
                 Authenticate Fingerprint
               </Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity = {0.7}
-              onPress = {() => {
-                DeviceSettings.open()
-              }}
-              style = {{
-                backgroundColor: 'mediumseagreen',
-                borderRadius: 10,
-                marginTop: 20,
-                padding: 20,
-                width: 200
-              }}
-            >
-              <Text
-                style = {{
-                  color: 'white',
-                  fontWeight: 'bold',
-                  textAlign: 'center'
-                }}
-              >
-                Open Device Settings To Set Up Fingerprint
-              </Text>
-            </TouchableOpacity>
-            </>
             :
             <TouchableOpacity
               activeOpacity = {0.7}
