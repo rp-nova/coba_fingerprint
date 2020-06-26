@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import {
   Alert,
   Image,
+  Linking,
   Text,
   TouchableOpacity,
   View,
@@ -11,6 +12,7 @@ import {
 } from 'react-native';
  
 import FingerprintScanner from 'react-native-fingerprint-scanner';
+import DeviceSettings from 'react-native-device-settings'
 import styles from './FingerprintPopup.component.styles';
 import ShakingText from './ShakingText.component';
  
@@ -24,18 +26,11 @@ class BiometricPopup extends Component {
     super(props);
     this.state = {
       errorMessageLegacy: undefined,
-      biometricLegacy: undefined
+      biometricLegacy: undefined,
+      isAuthenthicated: false
     };
  
     this.description = null;
-  }
- 
-  componentDidMount() {
-    if (this.requiresLegacyAuthentication()) {
-      this.authLegacy();
-    } else {
-      this.authCurrent();
-    }
   }
  
   componentWillUnmount = () => {
@@ -50,9 +45,26 @@ class BiometricPopup extends Component {
     FingerprintScanner
       .authenticate({ title: 'Log in with Biometrics' })
       .then(() => {
-        alert('Success')
-        // this.props.onAuthenticate();
-      });
+        this.setState({isAuthenthicated: true})
+
+        Alert.alert("Information", "Fingerprint is successfully authenticated!")
+      }).catch(err => {
+        FingerprintScanner.release()
+
+        Alert.alert(
+          'Information',
+          err.toString(),
+          // [
+          //   {
+          //     text: 'Cancel',
+          //     onPress: () => console.log('Cancel Pressed'),
+          //     style: 'cancel'
+          //   },
+          //   { text: 'Open Settings', onPress: () => DeviceSettings.open() }
+          // ],
+          // { cancelable: true }
+        )
+      })
   }
  
   authLegacy() {
@@ -60,7 +72,9 @@ class BiometricPopup extends Component {
       .authenticate({ onAttempt: this.handleAuthenticationAttemptedLegacy })
       .then(() => {
         // this.props.handlePopupDismissedLegacy();
-        Alert.alert('Fingerprint Authentication', 'Authenticated successfully');
+        this.setState({isAuthenthicated: true})
+
+        Alert.alert("Information", "Fingerprint is successfully authenticated!")
       })
       .catch((error) => {
         this.setState({ errorMessageLegacy: error.message, biometricLegacy: error.biometric });
@@ -78,34 +92,35 @@ class BiometricPopup extends Component {
     const { style, handlePopupDismissedLegacy } = this.props;
  
     return (
-      <View style={styles.container}>
-        <View style={[styles.contentContainer, style]}>
- 
-          <Image
-            style={styles.logo}
-            source={require('./assets/finger_print.png')}
-          />
- 
-          <Text style={styles.heading}>
-            Biometric{'\n'}Authentication
-          </Text>
-          <ShakingText
-            ref={(instance) => { this.description = instance; }}
-            style={styles.description(!!errorMessageLegacy)}>
-            {errorMessageLegacy || `Scan your ${biometricLegacy} on the\ndevice scanner to continue`}
-          </ShakingText>
- 
-          <TouchableOpacity
-            style={styles.buttonContainer}
-            onPress={handlePopupDismissedLegacy}
-          >
-            <Text style={styles.buttonText}>
-              BACK TO MAIN
+
+        <View style={styles.container}>
+          <View style={[styles.contentContainer, style]}>
+  
+            <Image
+              style={styles.logo}
+              source={require('./assets/finger_print.png')}
+            />
+  
+            <Text style={styles.heading}>
+              Biometric{'\n'}Authentication
             </Text>
-          </TouchableOpacity>
- 
+            <ShakingText
+              ref={(instance) => { this.description = instance; }}
+              style={styles.description(!!errorMessageLegacy)}>
+              {errorMessageLegacy || `Scan your ${biometricLegacy} on the\ndevice scanner to continue`}
+            </ShakingText>
+  
+            <TouchableOpacity
+              style={styles.buttonContainer}
+              onPress={handlePopupDismissedLegacy}
+            >
+              <Text style={styles.buttonText}>
+                BACK TO MAIN
+              </Text>
+            </TouchableOpacity>
+  
+          </View>
         </View>
-      </View>
     );
   }
  
@@ -116,7 +131,108 @@ class BiometricPopup extends Component {
     }
  
     // current API UI provided by native BiometricPrompt
-    return null;
+    return <View
+      style = {{
+        flex: 1
+      }}
+    >
+      <View
+          style = {{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            left: 0,
+            bottom: 0,
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          {
+            !this.state.isAuthenthicated ?
+              <>
+              <TouchableOpacity
+              activeOpacity = {0.7}
+              onPress = {() => {
+                if (this.requiresLegacyAuthentication()) {
+                  this.authLegacy();
+                } else {
+                  this.authCurrent();
+                }
+              }}
+              style = {{
+                backgroundColor: 'steelblue',
+                borderRadius: 10,
+                padding: 20
+              }}
+            >
+              <Text
+                style = {{
+                  color: 'white',
+                  fontWeight: 'bold'
+                }}
+              >
+                Authenticate Fingerprint
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity = {0.7}
+              onPress = {() => {
+                DeviceSettings.open()
+              }}
+              style = {{
+                backgroundColor: 'mediumseagreen',
+                borderRadius: 10,
+                marginTop: 20,
+                padding: 20,
+                width: 200
+              }}
+            >
+              <Text
+                style = {{
+                  color: 'white',
+                  fontWeight: 'bold',
+                  textAlign: 'center'
+                }}
+              >
+                Open Device Settings To Set Up Fingerprint
+              </Text>
+            </TouchableOpacity>
+            </>
+            :
+            <TouchableOpacity
+              activeOpacity = {0.7}
+              onPress = {async() => {
+                await this.setState({
+                  isAuthenthicated: false
+                })
+
+                await FingerprintScanner.release()
+
+                if (this.requiresLegacyAuthentication()) {
+                  this.authLegacy();
+                } else {
+                  this.authCurrent();
+                }
+              }}
+              style = {{
+                backgroundColor: 'red',
+                borderRadius: 10,
+                padding: 20
+              }}
+            >
+              <Text
+                style = {{
+                  color: 'white',
+                  fontWeight: 'bold'
+                }}
+              >
+                Re-Authenticate Fingerprint
+              </Text>
+            </TouchableOpacity>
+          }
+        </View>
+    </View>;
   }
 }
  
